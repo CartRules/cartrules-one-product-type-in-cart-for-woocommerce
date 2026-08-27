@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<ruleset name="Cartrules One Product Type In Cart For Woocommerce">
+	<description>WordPress coding standards.</description>
+
+	<!-- What to scan. Adjust per project; default is everything below root. -->
+	<file>.</file>
+
+	<exclude-pattern>/vendor/*</exclude-pattern>
+	<exclude-pattern>/node_modules/*</exclude-pattern>
+	<exclude-pattern>/build/*</exclude-pattern>
+	<exclude-pattern>/dist/*</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.asset.php</exclude-pattern>
+
+	<!-- How to scan -->
+	<arg value="sp"/><!-- Show sniff codes and progress -->
+	<arg name="basepath" value="."/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!--
+		WordPress-Core     formatting: tabs, spacing, Yoda, naming
+		WordPress-Extra    correctness: escaping, nonces, best practice
+		WordPress-Docs     docblocks. Enabled by default — comment out the rule
+		                   below if docblock enforcement is more than you want.
+
+		The tests/ exclusion lives on the Docs rule itself, so commenting that
+		rule out turns docblock enforcement off completely. Do not move it to a
+		separate <rule ref="Squiz.Commenting"> block: Docs is the only standard
+		that pulls Squiz.Commenting in, and it does so with ~35 WordPress-
+		specific exclusions. A standalone reference would re-add the sniff
+		without them, so disabling Docs would make docblock rules *stricter*.
+	-->
+	<rule ref="WordPress-Core"/>
+	<rule ref="WordPress-Extra"/>
+	<!-- WordPress-Docs disabled: mandatory full docblocks on every function
+	     conflict with this codebase's WHY-only comment convention. Commented
+	     out rather than moved to a standalone Squiz.Commenting reference,
+	     which would pull in the full sniff without WordPress-Docs' exclusions. -->
+	<!-- <rule ref="WordPress-Docs">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule> -->
+
+	<!--
+		The input half of "escape on output, sanitize on input". Extra ships
+		EscapeOutput and NonceVerification but not this one, so without it a
+		nonce-checked handler could write raw $_POST straight to the database
+		and still pass. Also catches missing wp_unslash() and undefined
+		superglobal indexes. This is the same sniff wordpress.org's Plugin Check
+		runs during review, so a plugin failing it fails there too.
+	-->
+	<rule ref="WordPress.Security.ValidatedSanitizedInput"/>
+
+	<!-- REPLACE: your text domain -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="cartrules-one-product-type-in-cart-for-woocommerce"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- REPLACE: your global prefixes (functions, classes, constants, options) -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="cartrules_optic"/>
+				<element value="CartRules_OPTIC"/>
+				<element value="CARTRULES_OPTIC"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!--
+		Tests follow PHPUnit conventions, not WordPress file conventions:
+		PHPUnit requires ClassNameTest.php, while WPCS wants class-name.php.
+		Also allow unprefixed globals, direct file ops, and looser alignment.
+	-->
+	<rule ref="WordPress.Files.FileName">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.Arrays.MultipleStatementAlignment">
+		<exclude-pattern>/tests/*</exclude-pattern>
+	</rule>
+
+	<!--
+		Shared cross-plugin file bundled verbatim by every CartRules plugin (see
+		AGENTS.md). It deliberately uses the bare "CartRules" brand prefix, not
+		this plugin's own sub-prefix, and reuses WooCommerce-core's own hook/
+		global naming for its multi-module settings tab
+		(woocommerce_get_sections_{$this->id}, $current_section) rather than
+		introducing new unprefixed globals.
+	-->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<exclude-pattern>includes/class-cartrules-settings-tab.php</exclude-pattern>
+	</rule>
+
+	<config name="minimum_wp_version" value="6.5"/>
+	<config name="testVersion" value="7.4-"/>
+	<rule ref="PHPCompatibilityWP"/>
+</ruleset>
