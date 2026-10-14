@@ -18,6 +18,7 @@ class CartRules_OPTIC_Cart_Restriction {
 	public function __construct() {
 		add_filter( 'woocommerce_add_to_cart_validation', array( $this, 'validate_add_to_cart' ), 10, 2 );
 		add_action( 'woocommerce_add_to_cart', array( $this, 'handle_replace' ), 10, 2 );
+		add_action( 'woocommerce_check_cart_items', array( $this, 'check_cart' ) );
 	}
 
 	/**
@@ -70,6 +71,36 @@ class CartRules_OPTIC_Cart_Restriction {
 		wc_add_notice( $this->build_deny_message( $existing_type_label ), 'error' );
 
 		return false;
+	}
+
+	/**
+	 * Items can reach the cart without add-to-cart validation: a guest cart merged at login,
+	 * "Order again", or another plugin adding products directly. This replays the add-to-cart
+	 * rule over the cart, item by item, so checkout blocks exactly the carts add-to-cart would
+	 * have refused, and nothing it allows.
+	 */
+	public function check_cart(): void {
+		if ( 'yes' !== get_option( 'cartrules_optic_enabled', 'no' ) || WC()->cart->is_empty() ) {
+			return;
+		}
+
+		$seen = array();
+
+		foreach ( WC()->cart->get_cart() as $cart_item ) {
+			$groups = array_filter( array( $this->get_product_type( (int) $cart_item['product_id'] ) ) );
+
+			if ( empty( $groups ) ) {
+				continue;
+			}
+
+			if ( $seen && ! array_intersect( $groups, $seen ) ) {
+				wc_add_notice( $this->build_deny_message( $this->get_product_type_label( $seen[0] ) ), 'error' );
+
+				return;
+			}
+
+			$seen = array_values( array_unique( array_merge( $seen, $groups ) ) );
+		}
 	}
 
 	/**
